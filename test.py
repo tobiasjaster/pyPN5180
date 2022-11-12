@@ -8,7 +8,9 @@ if __name__ == '__main__':
     debug = True if check_debug == '-v' else False
 
     reader = PN5180(bus=0, device=0, busy_pin=25, reset_pin=7, debug=debug)
-    while True:
-        cards = reader.inventory()
-        print(f"{len(cards)} card(s) detected: {' - '.join(cards)}")
-        time.sleep(.4)
+    #recvBuffer = [0xFF, 0xFF]
+    #reader.transceiveCommand([0x07,0x10,0x02],recvBuffer)
+    recvBuffer = reader.transceive(0x07, 0x10, [0x02], 2)
+    print(recvBuffer)
+    del reader
+
