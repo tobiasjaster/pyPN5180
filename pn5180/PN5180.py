@@ -3,7 +3,10 @@ from enum import Enum
 import logging
 import spidev
 import time
-from RPi import GPIO
+try:
+    from RPi import GPIO
+except:
+    pass
 
 
 class PN5180_REG(Enum):
