@@ -15,7 +15,9 @@ class PN5180ISO15693:
         If this value is higher than 0, a Card has responded.
         :return:
         """
-        result = self.pn5180.read_register(0x13, 4)  # Read 4 bytes
+        self.pn5180._send([0x04, 0x13])  # READ_REGISTER RX_STATUS -> Response > 0 -> Card has responded
+        result = self.pn5180._read(4)  # Read 4 bytes
+        # result = self.pn5180.read_register(0x13, 4)  # Read 4 bytes
         LOGGER.debug("Received", result)
         if result[0] > 0:
             self._bytes_in_card_buffer = result[0]
@@ -29,28 +31,28 @@ class PN5180ISO15693:
         """
         uids = []
         # https://www.nxp.com/docs/en/application-note/AN12650.pdf
-        self.pn5180.transceiveBuffer([0x11, 0x0D, 0x8D])  # Loads the ISO 15693 protocol into the RF registers
-        self.pn5180.transceiveBuffer([0x16, 0x00])  # Switches the RF field ON.
-        self.pn5180.transceiveBuffer([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
-        self.pn5180.transceiveBuffer([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
-        self.pn5180.transceiveBuffer([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
-        self.pn5180.transceiveBuffer([0x09, 0x00, 0x06, 0x01, 0x00])  # Sends an inventory command with 16 slots
+        self.pn5180._send([0x11, 0x0D, 0x8D])  # Loads the ISO 15693 protocol into the RF registers
+        self.pn5180._send([0x16, 0x00])  # Switches the RF field ON.
+        self.pn5180._send([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
+        self.pn5180._send([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
+        self.pn5180._send([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
+        self.pn5180._send([0x09, 0x00, 0x06, 0x01, 0x00])  # Sends an inventory command with 16 slots
 
         for slot_counter in range(0, 16):  # A loop that repeats 16 times since an inventory command consists of 16 time slots
             if self._card_has_responded():  # The function CardHasResponded reads the RX_STATUS register, which indicates if a card has responded or not.
                 #GPIO.output(16, GPIO.LOW)
-                uid_buffer = [0xFF]*self._bytes_in_card_buffer
-                self.pn5180.transceiveBuffer([0x0A, 0x00], uid_buffer)  # Command READ_DATA - Reads the reception Buffer
+                self.pn5180._send([0x0A, 0x00])  # Command READ_DATA - Reads the reception Buffer
+                uid_buffer = self.pn5180._read(self._bytes_in_card_buffer)
                 # uid_buffer = self._read(255)  # We shall read the buffer from SPI MISO
                 LOGGER.debug(uid_buffer)
                 # uid = uid_buffer[0:10]
                 uids.append(uid_buffer)
-            self.pn5180.transceiveBuffer([0x02, 0x18, 0x3F, 0xFB, 0xFF, 0xFF])  # Send only EOF (End of Frame) without data at the next RF communication.
-            self.pn5180.transceiveBuffer([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
-            self.pn5180.transceiveBuffer([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
-            self.pn5180.transceiveBuffer([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
-            self.pn5180.transceiveBuffer([0x09, 0x00])  # Send EOF
-        self.pn5180.transceiveBuffer([0x17, 0x00])  # Switch OFF RF field
+            self.pn5180._send([0x02, 0x18, 0x3F, 0xFB, 0xFF, 0xFF])  # Send only EOF (End of Frame) without data at the next RF communication.
+            self.pn5180._send([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
+            self.pn5180._send([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
+            self.pn5180._send([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
+            self.pn5180._send([0x09, 0x00])  # Send EOF
+        self.pn5180._send([0x17, 0x00])  # Switch OFF RF field
         #GPIO.output(16, GPIO.HIGH)
         return uids
 

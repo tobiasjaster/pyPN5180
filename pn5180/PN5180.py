@@ -141,7 +141,7 @@ class PN5180_SPI:
 
 class PN5180:
     def __init__(self, bus: int = 0, device: int = 0, **kwargs):
-        self._spi = PN5180_SPI(bus, device, speed=7000000, no_cs=True, mode=0)
+        self._spi = PN5180_SPI(bus, device, speed=50000, no_cs=True, mode=0)
         self._pins = PN5180_PIN(**kwargs)
         self._pins.calc_cs(bus, device)
         self._pins.init_gpio()
