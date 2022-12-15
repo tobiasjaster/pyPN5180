@@ -175,14 +175,14 @@ class PN5180:
         LOGGER.debug(f"Sent Buffer: {bytes}")
 
     def _read(self, length):
-        self._wait_ready()
+        # self._wait_ready()
         if self._spi.spi.no_cs is True:
             GPIO.output(self._pins.cs, GPIO.LOW)
             recvBuffer = self._spi.spi.xfer([0xff]*length)
             GPIO.output(self._pins.cs, GPIO.HIGH)
         else:
             recvBuffer = self._spi.spi.readbytes(length)
-        self._wait_ready()
+        # self._wait_ready()
         LOGGER.debug(f"Read Buffer: {recvBuffer}")
         return recvBuffer
         
