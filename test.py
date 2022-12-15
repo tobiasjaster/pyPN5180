@@ -1,7 +1,9 @@
 from pn5180 import PN5180, PN5180_Firmware
 import sys
 import time
+import logging
 
+LOGGER = logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 if __name__ == '__main__':
     check_debug = sys.argv[1] if len(sys.argv) == 2 else ''
@@ -17,5 +19,5 @@ if __name__ == '__main__':
     pn5180_firmware.get_version(major, minor)
     pn5180_firmware.stop_sfd_mode()
     del pn5180_firmware
-    del pn5180
+    del pn5180 
 

@@ -1,6 +1,9 @@
 from pn5180 import PN5180, PN5180ISO15693
 import sys
 import time
+import logging
+
+logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 
 if __name__ == '__main__':
