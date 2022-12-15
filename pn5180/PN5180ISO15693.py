@@ -16,7 +16,7 @@ class PN5180ISO15693:
         :return:
         """
         result = self.pn5180.read_register(0x13, 4)  # Read 4 bytes
-        LOGGER("Received", result)
+        LOGGER.debug("Received", result)
         if result[0] > 0:
             self._bytes_in_card_buffer = result[0]
             return True
@@ -42,7 +42,7 @@ class PN5180ISO15693:
                 uid_buffer = [0xFF]*self._bytes_in_card_buffer
                 self.pn5180.transceiveBuffer([0x0A, 0x00], uid_buffer)  # Command READ_DATA - Reads the reception Buffer
                 # uid_buffer = self._read(255)  # We shall read the buffer from SPI MISO
-                LOGGER(uid_buffer)
+                LOGGER.debug(uid_buffer)
                 # uid = uid_buffer[0:10]
                 uids.append(uid_buffer)
             self.pn5180.transceiveBuffer([0x02, 0x18, 0x3F, 0xFB, 0xFF, 0xFF])  # Send only EOF (End of Frame) without data at the next RF communication.
