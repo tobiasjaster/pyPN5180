@@ -1,4 +1,13 @@
+from . import PN5180
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 class PN5180ISO15693:
+
+    def __init__(self, pn5180: PN5180.PN5180):
+        self.pn5180 = pn5180
+
     def _card_has_responded(self):
         """
         The function CardHasResponded reads the RX_STATUS register, which indicates if a card has responded or not.
@@ -6,8 +15,8 @@ class PN5180ISO15693:
         If this value is higher than 0, a Card has responded.
         :return:
         """
-        result = self.read_register(0x13, 4)  # Read 4 bytes
-        self.__log("Received", result)
+        result = self.pn5180.read_register(0x13, 4)  # Read 4 bytes
+        LOGGER("Received", result)
         if result[0] > 0:
             self._bytes_in_card_buffer = result[0]
             return True
@@ -20,28 +29,28 @@ class PN5180ISO15693:
         """
         uids = []
         # https://www.nxp.com/docs/en/application-note/AN12650.pdf
-        self._send([0x11, 0x0D, 0x8D])  # Loads the ISO 15693 protocol into the RF registers
-        self._send([0x16, 0x00])  # Switches the RF field ON.
-        self._send([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
-        self._send([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
-        self._send([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
-        self._send([0x09, 0x00, 0x06, 0x01, 0x00])  # Sends an inventory command with 16 slots
+        self.pn5180.transceiveBuffer([0x11, 0x0D, 0x8D])  # Loads the ISO 15693 protocol into the RF registers
+        self.pn5180.transceiveBuffer([0x16, 0x00])  # Switches the RF field ON.
+        self.pn5180.transceiveBuffer([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
+        self.pn5180.transceiveBuffer([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
+        self.pn5180.transceiveBuffer([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
+        self.pn5180.transceiveBuffer([0x09, 0x00, 0x06, 0x01, 0x00])  # Sends an inventory command with 16 slots
 
         for slot_counter in range(0, 16):  # A loop that repeats 16 times since an inventory command consists of 16 time slots
             if self._card_has_responded():  # The function CardHasResponded reads the RX_STATUS register, which indicates if a card has responded or not.
                 #GPIO.output(16, GPIO.LOW)
-                self._send([0x0A, 0x00])  # Command READ_DATA - Reads the reception Buffer
-                uid_buffer = self._read(self._bytes_in_card_buffer)  # We shall read the buffer from SPI MISO -  Everything in the reception buffer shall be saved into the UIDbuffer array.
+                uid_buffer = [0xFF]*self._bytes_in_card_buffer
+                self.pn5180.transceiveBuffer([0x0A, 0x00], uid_buffer)  # Command READ_DATA - Reads the reception Buffer
                 # uid_buffer = self._read(255)  # We shall read the buffer from SPI MISO
-                self.__log(uid_buffer)
+                LOGGER(uid_buffer)
                 # uid = uid_buffer[0:10]
                 uids.append(uid_buffer)
-            self._send([0x02, 0x18, 0x3F, 0xFB, 0xFF, 0xFF])  # Send only EOF (End of Frame) without data at the next RF communication.
-            self._send([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
-            self._send([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
-            self._send([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
-            self._send([0x09, 0x00])  # Send EOF
-        self._send([0x17, 0x00])  # Switch OFF RF field
+            self.pn5180.transceiveBuffer([0x02, 0x18, 0x3F, 0xFB, 0xFF, 0xFF])  # Send only EOF (End of Frame) without data at the next RF communication.
+            self.pn5180.transceiveBuffer([0x02, 0x00, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
+            self.pn5180.transceiveBuffer([0x01, 0x00, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
+            self.pn5180.transceiveBuffer([0x00, 0x03, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
+            self.pn5180.transceiveBuffer([0x09, 0x00])  # Send EOF
+        self.pn5180.transceiveBuffer([0x17, 0x00])  # Switch OFF RF field
         #GPIO.output(16, GPIO.HIGH)
         return uids
 
@@ -65,12 +74,9 @@ class PN5180ISO15693:
         :param raw:
         :return:
         """
-        if self.__protocol == 'ISO15693':
-            cards = self._inventory_iso15693()
-            # print(f"{len(cards)} card(s) detected: {' - '.join([self._format_uid(card) for card in cards])}")
-            if raw:
-                return cards
-            else:
-                return [self._format_uid(card) for card in cards]
+        cards = self._inventory_iso15693()
+        # print(f"{len(cards)} card(s) detected: {' - '.join([self._format_uid(card) for card in cards])}")
+        if raw:
+            return cards
         else:
-            NotImplementedError("Only ISO15693 is implemented as of now.")
+            return [self._format_uid(card) for card in cards]
